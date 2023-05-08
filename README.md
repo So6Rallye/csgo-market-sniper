@@ -17,7 +17,7 @@ If you encounter any bugs or issues, please open a ticket in the 'Issues' sectio
 These instructions will guide you through the process of setting up and running the bot.
 1. **Install Python:** The bot is written in Python. If you don't have Python installed on your system, you can download and install it from the [official website](https://www.python.org/downloads/).
 2. **Clone the repository:** Clone this repository to your local machine using `git clone https://github.com/jcardama/csgo-market-sniper.git`.
-3. **Install dependencies:** Navigate into the cloned repository and run `pip install -r settings/requirements.txt` to install the necessary dependencies.
+3. **Install dependencies:** Navigate into the cloned repository and run `pip install -r .\settings\requirements.txt` to install the necessary dependencies.
 4. **Add the CSGOFloat Extension:** Download the CSGOFloat Extension `.crx` file as explained in the section "Acquiring the CSGOFloat Extension". Add the path of your downloaded `.crx` file to the `chrome_options.add_extension` function in the `functions.py` file. Example:
 ```python
 options.add_extension('path_to_your_crx_file.crx')
@@ -31,7 +31,7 @@ skins:
     pages: 2
     pattern: 502, 800
 ```
-6. **Run the bot:** Finally, run the bot using the command `python main.py`.
+6. **Run the bot:** Finally, run the bot using the command `python csgo-market-sniper.py`.
 7. **Post-launch instructions:** Once the bot has started, you will need to manually log in to your Steam account. After logging in, you can press 'Enter' in the console to start the bot. Please ensure that you're ready to start and you're logged into Steam. The bot will then begin to monitor the specified skins and attempt to purchase them according to the rules specified in the `config.yaml` file.
 
 ## Acquiring the CSGOFloat Extension
@@ -46,6 +46,8 @@ Once you have the `.crx` file, update the `add_extension` method in the `functio
 
 ## Planned
 
+- Auto download and install the required CSGOFloat extension.
+- Add a Proxy to the bot, using Brightdata, Oxylabs, Smartproxy or Scraperapi as different options for proxy services
 - Filter skins with or without stickers (currently limited by the CSGOFloat extension)
 - Setting to buy higher than set float skin, not lower only.
 - Buy stickers, cases, agents etc.
