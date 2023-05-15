@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import time
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 from colorama import Style
 from selenium.common.exceptions import TimeoutException
@@ -29,6 +29,55 @@ def cls() -> None:
     os.system('cls' if os.name == 'nt' else 'clear')
 
 
+def handle_errors_and_retry(config: Dict[str, Any], driver: WebDriver, url: str) -> None:
+    """
+    Handles server errors and retries a request until a successful response is received.
+
+    Parameters:
+    driver (webdriver): The WebDriver instance used to interact with the page.
+    url (str): The URL of the request to retry.
+    """
+
+    had_error = False
+
+    while True:
+        # Find the last request to the given URL
+        matching_requests = [req for req in driver.requests if req.url == url]
+
+        # Exit the loop if no matching requests were found
+        if not matching_requests:
+            break
+
+        # Get the last request
+        last_request = matching_requests[-1]
+
+        # Check if the status code indicates an error
+        if last_request.response.status_code in [500, 502, 503, 429]:
+            # Implement a waiting time before retrying
+            if last_request.response.status_code == 429:
+                if config.get('retry_after_too_many_requests'):
+                    print("Too many requests, waiting before retrying...")
+                    time.sleep(config.get('timeouts').get('after_too_many_requests'))
+                else:
+                    print("Too many requests, exiting...")
+                    sys.exit(1)
+            else:
+                if config.get('retry_after_server_error'):
+                    print("Server error, waiting before retrying...")
+                    time.sleep(config.get('timeouts').get('after_server_error'))
+                else:
+                    print("Server error, exiting...")
+                    sys.exit(1)
+            # Retry the request
+            driver.get(url)
+            had_error = True
+        else:
+            # Clear the console before continuing, but only if there was previously an error
+            if had_error:
+                cls()
+            break
+
+
 def click_sort_button_if_needed(driver: WebDriver, sort_by_float: Optional[str]) -> None:
     """
     If needed, find the sort button in the page's shadow DOM and click it.
@@ -43,8 +92,6 @@ def click_sort_button_if_needed(driver: WebDriver, sort_by_float: Optional[str])
 
     if sort_by_float is None:
         return
-
-    time.sleep(3)  # ensure the page has loaded
 
     # Navigate through nested shadow DOM to reach sort button
     shadow_root = driver
@@ -119,8 +166,10 @@ def get_listings_per_page_count(driver: WebDriver) -> int:
     Returns:
     int: The total number of items on the page.
     """
-
-    return int(WebDriverWait(driver, 10).until(ec.presence_of_element_located(PageLocators.SEARCH_RESULTS)).text)
+    try:
+        return int(WebDriverWait(driver, 10).until(ec.presence_of_element_located(PageLocators.SEARCH_RESULTS)).text)
+    except:
+        return 0
 
 
 def get_market_listings(driver: WebDriver) -> List[WebElement]:
@@ -133,8 +182,10 @@ def get_market_listings(driver: WebDriver) -> List[WebElement]:
     Returns:
     List[WebElement]: A list of market listings.
     """
-
-    return driver.find_elements(*PageLocators.MARKET_LISTING_ROW)
+    try:
+        return driver.find_elements(*PageLocators.MARKET_LISTING_ROW)
+    except:
+        return []
 
 
 def get_market_listing_details(driver: WebDriver, market_listing: WebElement) -> Tuple[WebElement, WebElement, WebElement, WebElement, WebElement]:
@@ -211,13 +262,16 @@ def get_user_balance(driver: WebDriver) -> float:
     float: The user's balance.
     """
 
-    # Wait for user balance element to appear and fetch its text
-    balance_text = WebDriverWait(driver, 60).until(
-        ec.presence_of_element_located(PageLocators.USER_BALANCE)
-    ).text
+    try:
+        # Wait for user balance element to appear and fetch its text
+        balance_text = WebDriverWait(driver, 60).until(
+            ec.presence_of_element_located(PageLocators.USER_BALANCE)
+        ).text
 
-    # Extract digits from balance text, convert to float and divide by 100 to get actual value
-    return float(''.join(filter(str.isdigit, balance_text))) / 100
+        # Extract digits from balance text, convert to float and divide by 100 to get actual value
+        return float(''.join(filter(str.isdigit, balance_text))) / 100
+    except:
+        return 0
 
 
 def display_progress_bar(
@@ -314,7 +368,7 @@ def is_listing_matching_purchase_criteria(
 
     # Check if the user has enough balance for the listing
     if user_balance < listing_price:
-        return False    
+        return False
 
     # Check if the maximum price is specified and if the listing price is greater than the maximum price
     if config_price is not None and listing_price > config_price:
@@ -395,7 +449,7 @@ def record_purchase(logger: logging.Logger, listing_name: str, listing_float: fl
     buy_count += 1
 
 
-def navigate_to_next_page(driver: WebDriver) -> bool:
+def navigate_to_next_page(driver: WebDriver, timeout: int) -> bool:
     """
     Navigates to the next page of the skin marketplace if it exists.
 
@@ -410,8 +464,8 @@ def navigate_to_next_page(driver: WebDriver) -> bool:
         # Navigate to the next page
         driver.find_element(*PageLocators.NEXT_PAGE).click()
 
-        # Allow the page to load
-        time.sleep(3)
+        # Wait for timeout in seconds before continuing
+        time.sleep(timeout)
 
         return True
     except:
@@ -419,7 +473,7 @@ def navigate_to_next_page(driver: WebDriver) -> bool:
         return False
 
 
-def process_skin_marketplace(driver: WebDriver, skin: Dict, current_skin: int) -> None:
+def process_skin_marketplace(config: Dict[str, Any], driver: WebDriver, skin: Dict[str, str], current_skin: int) -> None:
     """
     Navigates the marketplace of a specific skin, checks each listing against user-defined criteria,
     and attempts to purchase listings that meet these criteria. Details of each successful purchase are logged.
@@ -432,10 +486,19 @@ def process_skin_marketplace(driver: WebDriver, skin: Dict, current_skin: int) -
     Returns:
     None
     """
+    # Wait for timeout in seconds before processing the skin
+    time.sleep(config.get('timeouts').get('per_skin'))
 
     # Navigate to the skin's marketplace page if not already there
     if skin.get('url') != driver.current_url:
         driver.get(skin.get('url'))
+
+    # Wait for the page to load
+    while not driver.execute_script("return document.readyState == 'complete'"):
+        time.sleep(1)
+
+    # Handle any errors that may occur and reload the page if necessary
+    handle_errors_and_retry(config, driver, skin.get('url'))
 
     # If the user wants to sort listings by their float values, attempt to do so
     try:
@@ -457,18 +520,10 @@ def process_skin_marketplace(driver: WebDriver, skin: Dict, current_skin: int) -
         # For each listing on the current page...
         for index, market_listing in enumerate(market_listings, start=1):
             # Attempt to get the user's current balance
-            try:
-                user_balance = get_user_balance(driver)
-            except Exception:
-                sys.stderr.write(
-                    "Can't get user balance. Make sure that you're logged in.\nExiting..."
-                )
-                driver.quit()
-                sys.exit(0)
+            user_balance = get_user_balance(driver)
 
             # Update the progress bar
-            current_listing = (current_page - 1) * \
-                listings_per_page_count + index
+            current_listing = (current_page - 1) * listings_per_page_count + index
             display_progress_bar(
                 current_skin,
                 current_page,
@@ -506,5 +561,5 @@ def process_skin_marketplace(driver: WebDriver, skin: Dict, current_skin: int) -
             record_purchase(logger, name, float_value, price)
 
         # If there are more pages to process, navigate to the next page
-        if not navigate_to_next_page(driver):
+        if not navigate_to_next_page(driver, config.get('timeouts').get('per_page')):
             continue
