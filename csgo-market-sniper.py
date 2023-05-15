@@ -17,11 +17,14 @@ def main():
     It loads the configuration settings, initializes the webdriver, and enters the main loop for searching skins to buy.
     """
     # Load the configuration settings from the config file
-    skins, proxy_url = load_config()
+    config = load_config()
+
+    skins = config.get('skins')
+    proxy_url = config.get('proxy_url')
 
     # Check if the configuration was loaded successfully
-    if skins is None:
-        print("No valid skins configuration found. Please check your settings.\nExiting...")
+    if config is None:
+        print("No valid configuration found. Please check your settings.\nExiting...")
         return
 
     # Initialize the webdriver for browsing the Steam Community Market
@@ -37,14 +40,13 @@ def main():
         driver.get(
             "https://steamcommunity.com/login/home/?goto=market%2Flistings%2F730"
         )
-
         print("Steam login page loaded. Please log in to your account...")
 
         # Wait until the logout button appears (indicating that the user has successfully logged in)
         WebDriverWait(driver, float("inf")).until(
             ec.presence_of_element_located(PageLocators.LOGOUT_BUTTON)
         )
-        print("Login successful! Starting the bot...")
+        input("Login successful! Press enter to start the bot...")
 
         # Load the first skin's page
         driver.get(skins[0].get('url'))
@@ -60,20 +62,20 @@ def main():
             # Loop over all the skins in the configuration
             for skin in skins:
                 # Process the current skin's marketplace
-                process_skin_marketplace(driver, skin, skin_index)
+                process_skin_marketplace(config, driver, skin, skin_index)
                 skin_index += 1
 
     # Catch exceptions to provide informative messages and clean up before exiting
     except NoSuchWindowException:
         print("The browser window was closed by the user.\nExiting...")
         sys.exit(0)
-    except KeyboardInterrupt or urllib3.exceptions.ProtocolError or urllib3.exceptions.MaxRetryError or urllib3.exceptions.ProtocolError:
+    except KeyboardInterrupt or urllib3.exceptions.ProtocolError or urllib3.exceptions.MaxRetryError or urllib3.exceptions.ProtocolError or urllib3.exceptions.ReadTimeoutError:
         print("Bot interrupted.\nExiting...")
         sys.exit(0)
     finally:
         # Close the browser window
         driver.quit()
-        print("Browser closed.\nGoodbye!")
+        print("Browser instance closed.\nGoodbye!")
 
 
 # Run the program

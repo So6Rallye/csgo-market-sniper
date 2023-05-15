@@ -28,6 +28,13 @@ These instructions will guide you through the process of setting up and running 
 Your `settings/config.yaml` file should look something like this:
 
 ```yaml
+retry_after_server_error: true
+retry_after_too_many_requests: true
+timeouts: 
+  per_skin: 2
+  per_page: 2
+  after_server_error: 10
+  after_too_many_requests: 60
 proxy_url:
 skins:
   - url: https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20SG%20553%20%7C%20Cyberforce%20%28Field-Tested%29
@@ -37,6 +44,24 @@ skins:
     pattern:
     sort_by_float: asc
 ```
+
+### Network Errors
+
+The bot is capable of handling certain network errors and retrying requests as necessary. You have two options:
+- `retry_after_server_error`: This is a boolean flag (true/false). If set to `true`, the bot will retry a request after encountering a server error (500, 502, 503 status codes). If set to `false`, the bot will not retry after a server error.
+- `retry_after_too_many_requests`: This is a boolean flag (true/false). If set to `true`, the bot will retry a request after encountering a `429 Too Many Requests` response. If set to `false`, the bot will not retry after too many requests.
+
+Note: The network errors handled are related to the skin url, other requests that result in an error are going to be ignored.
+
+### Timeouts
+
+The `timeouts` section is used to control the delay before certain actions, preventing the bot from making too many requests in a short period of time. You have several options:
+- `per_skin`: This is the delay (in seconds) between each skin request. Default value: 2
+- `per_page`: This is the delay (in seconds) between each page request. Default value: 2
+- `after_server_error`: If `retry_after_server_error` is set to `true`, this is the delay (in seconds) that the bot will wait before retrying a request after encountering a server error. Default value: 10
+- `after_too_many_requests`: If `retry_after_too_many_requests` is set to `true`, this is the delay (in seconds) that the bot will wait before retrying a request after encountering a `429 Too Many Requests` response. Default value: 60
+
+Note: Timeout parameters are optional. If not provided, the bot will use default values.
 
 ### Proxy
 
@@ -62,7 +87,8 @@ The `skins` section is where you specify the skins you want the bot to monitor. 
 
 ## Planned
 
-- Filter skins with or without stickers (currently limited by the CSGOFloat extension)
+- Have the previous session being restored to avoid logging in every time you use the bot.
+- Filter skins with or without stickers (currently limited by the CSGOFloat extension).
 - Setting to buy higher than set float skin, not lower only.
 - Buy stickers, cases, agents etc.
 
