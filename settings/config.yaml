@@ -7,9 +7,10 @@ timeouts:
   after_too_many_requests: 60
 proxy_url: # Replace this with the appropriate proxy URL or leave empty format: username:password@ip:port
 skins:
-  - url: https://steamcommunity.com/market/listings/730/StatTrak%E2%84%A2%20SG%20553%20%7C%20Cyberforce%20%28Field-Tested%29 # Set to the URL of the item you want to purchase
-    float: 0.09 # Set to a float value eg. 0.09 or leave empty to not purchase by float
-    price: 0.45 # Set to a price in decimal format eg. 0.45 or leave empty to not purchase by price
-    pages: 5 # Set to a number of pages eg. 5 or leave empty to purchase from all available pages
+  - url: https://steamcommunity.com/market/listings/730/Nova%20%7C%20Wurst%20H%C3%B6lle%20%28Battle-Scarred%29 # Set to the URL of the item you want to purchase
+    float: 0.49 # Set to a float value eg. 0.09 or leave empty to not purchase by float
+    price: 0.36 # Set to a price in decimal format eg. 0.45 or leave empty to not purchase by price
+    pages: # Set to a number of pages eg. 5 or leave empty to purchase from all available pages
     pattern: # Set to a list of patterns eg. 1, 2, 3 or leave empty to not purchase by pattern
     sort_by_float: asc # Set to asc (low to high) or desc (high to low) to sort by float value or leave empty to not sort by float
+    
